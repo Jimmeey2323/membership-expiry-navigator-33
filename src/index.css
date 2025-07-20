@@ -56,6 +56,11 @@
     --warning-foreground: 210 20% 98%;
     --warning-light: 38 92% 95%;
 
+    /* Gold/Premium colors */
+    --gold: 45 93% 58%;
+    --gold-foreground: 210 20% 98%;
+    --gold-light: 45 93% 95%;
+
     /* Border system */
     --border: 220 13% 91%;
     --border-light: 220 13% 95%;
@@ -138,6 +143,10 @@
     --warning: 38 92% 60%;
     --warning-foreground: 210 20% 98%;
     --warning-light: 38 92% 15%;
+
+    --gold: 45 93% 68%;
+    --gold-foreground: 210 20% 98%;
+    --gold-light: 45 93% 15%;
 
     --border: 215 28% 17%;
     --border-light: 215 28% 20%;

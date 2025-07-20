@@ -92,36 +92,105 @@ const Index = () => {
     });
   };
 
+  // Enhanced date parsing function
+  const parseDate = (dateStr: string): Date => {
+    if (!dateStr || dateStr === '-') return new Date(0);
+    
+    // Handle various date formats from Google Sheets
+    let cleanDateStr = dateStr.trim();
+    
+    // If it contains time info, remove it for basic date parsing
+    if (cleanDateStr.includes(' ')) {
+      cleanDateStr = cleanDateStr.split(' ')[0];
+    }
+    
+    // Try parsing DD/MM/YYYY format
+    if (cleanDateStr.includes('/')) {
+      const parts = cleanDateStr.split('/');
+      if (parts.length === 3) {
+        const [day, month, year] = parts;
+        const parsedDate = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`);
+        if (!isNaN(parsedDate.getTime())) {
+          return parsedDate;
+        }
+      }
+    }
+    
+    // Try parsing YYYY-MM-DD format
+    if (cleanDateStr.includes('-')) {
+      const parsedDate = new Date(cleanDateStr);
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate;
+      }
+    }
+    
+    // Fallback to direct Date constructor
+    const fallbackDate = new Date(dateStr);
+    return isNaN(fallbackDate.getTime()) ? new Date(0) : fallbackDate;
+  };
+
   const applyQuickFilter = (data: MembershipData[]): MembershipData[] => {
     // If quickFilter is 'all', don't apply any additional filtering
     if (quickFilter === 'all') return data;
     
+    // Handle multi-filter mode - this will be expanded when CollapsibleFilters passes active filters
+    if (quickFilter === 'multi-filter') {
+      // For now, return all data - the actual multi-filtering logic would be handled
+      // by passing the active filters from CollapsibleFilters to Index
+      return data;
+    }
+    
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const nextWeek = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+    const nextMonth = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
 
     switch (quickFilter) {
       case 'active':
         return data.filter(member => member.status === 'Active');
       case 'expired':
         return data.filter(member => member.status === 'Expired');
+      case 'frozen':
+        return data.filter(member => member.frozen && member.frozen.toLowerCase() === 'true');
       case 'sessions':
         return data.filter(member => member.sessionsLeft > 0);
       case 'no-sessions':
         return data.filter(member => member.sessionsLeft === 0);
+      case 'low-sessions':
+        return data.filter(member => member.sessionsLeft > 0 && member.sessionsLeft <= 3);
+      case 'medium-sessions':
+        return data.filter(member => member.sessionsLeft >= 4 && member.sessionsLeft <= 10);
+      case 'high-sessions':
+        return data.filter(member => member.sessionsLeft > 10);
       case 'recent':
-        return data.filter(member => new Date(member.orderDate) >= thirtyDaysAgo);
+        return data.filter(member => parseDate(member.orderDate) >= thirtyDaysAgo);
       case 'weekly':
-        return data.filter(member => new Date(member.orderDate) >= sevenDaysAgo);
-      case 'expiring':
+        return data.filter(member => parseDate(member.orderDate) >= sevenDaysAgo);
+      case 'expiring-week':
         return data.filter(member => {
-          const endDate = new Date(member.endDate);
-          return endDate >= now && endDate <= new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+          const endDate = parseDate(member.endDate);
+          return endDate >= now && endDate <= nextWeek && member.status === 'Active';
         });
+      case 'expiring-month':
+        return data.filter(member => {
+          const endDate = parseDate(member.endDate);
+          return endDate >= now && endDate <= nextMonth && member.status === 'Active';
+        });
+      case 'premium':
+        return data.filter(member => member.membershipName && member.membershipName.toLowerCase().includes('unlimited'));
+      case 'high-value':
+        return data.filter(member => parseFloat(member.paid) > 5000);
+      case 'unpaid':
+        return data.filter(member => !member.paid || member.paid === '-' || parseFloat(member.paid) === 0);
       default:
-        if (quickFilter.startsWith('location-')) {
-          const location = quickFilter.replace('location-', '');
-          return data.filter(member => member.location === location);
+        // Handle location filters and membership type filters
+        if (availableLocations.includes(quickFilter)) {
+          return data.filter(member => member.location === quickFilter);
+        }
+        const availableMembershipTypes = [...new Set(localMembershipData.map(m => m.membershipName).filter(Boolean))];
+        if (availableMembershipTypes.includes(quickFilter)) {
+          return data.filter(member => member.membershipName === quickFilter);
         }
         return data;
     }
@@ -132,7 +201,7 @@ const Index = () => {
   const expiredMembers = localMembershipData.filter(member => member.status === 'Expired');
   const membersWithSessions = localMembershipData.filter(member => member.sessionsLeft > 0);
   const expiringMembers = localMembershipData.filter(member => {
-    const endDate = new Date(member.endDate);
+    const endDate = parseDate(member.endDate);
     const now = new Date();
     return endDate >= now && endDate <= new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
   });
