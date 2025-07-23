@@ -9,6 +9,8 @@ import { DataTable } from "@/components/DataTable";
 import { MembershipChart } from "@/components/MembershipChart";
 import { CollapsibleFilters } from "@/components/CollapsibleFilters";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { MemberCard } from "@/components/MemberCard";
+import { MemberAnnotations } from "@/components/MemberAnnotations";
 import { googleSheetsService } from "@/services/googleSheets";
 import { MembershipData, FilterOptions } from "@/types/membership";
 import { Link } from "react-router-dom";
@@ -21,10 +23,9 @@ import {
   Activity,
   RefreshCw,
   Building2,
-  TrendingUp,
   TrendingDown,
-  Calendar,
-  AlertTriangle
+  Grid,
+  List
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -39,6 +40,9 @@ const Index = () => {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [quickFilter, setQuickFilter] = useState<string>('all');
   const [localMembershipData, setLocalMembershipData] = useState<MembershipData[]>([]);
+  const [selectedMember, setSelectedMember] = useState<MembershipData | null>(null);
+  const [isAnnotationsOpen, setIsAnnotationsOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
 
   const { data: membershipData = [], isLoading, error, refetch } = useQuery({
     queryKey: ['membershipData'],
@@ -66,6 +70,16 @@ const Index = () => {
           : member
       )
     );
+  };
+
+  const handleOpenAnnotations = (member: MembershipData) => {
+    setSelectedMember(member);
+    setIsAnnotationsOpen(true);
+  };
+
+  const handleCloseAnnotations = () => {
+    setSelectedMember(null);
+    setIsAnnotationsOpen(false);
   };
 
   const applyFilters = (data: MembershipData[]): MembershipData[] => {
@@ -216,37 +230,21 @@ const Index = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen gradient-mesh flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center space-y-8 animate-fade-in">
-          <Card className="card-glass p-12 max-w-md mx-auto">
+          <Card className="p-12 max-w-md mx-auto border-gray-200 bg-white shadow-lg">
             <div className="relative mb-8">
-              <div className="absolute inset-0 gradient-primary rounded-full blur-lg opacity-50 animate-glow" />
-              <div className="relative p-6 gradient-primary text-white rounded-full mx-auto w-fit">
+              <div className="relative p-6 bg-blue-600 text-white rounded-full mx-auto w-fit">
                 <RefreshCw className="h-12 w-12 animate-spin" />
               </div>
             </div>
             <div className="space-y-4">
-              <h2 className="text-sophisticated text-2xl">
+              <h2 className="text-gray-900 text-2xl font-semibold">
                 Loading Dashboard
               </h2>
-              <p className="text-refined text-lg">
+              <p className="text-gray-600 text-lg">
                 Fetching membership data & analytics...
               </p>
-              
-              {/* Loading shimmer bars */}
-              <div className="space-y-3 mt-8">
-                {[1, 2, 3].map((i) => (
-                  <div 
-                    key={i}
-                    className="h-2 bg-gradient-to-r from-primary/20 via-primary/40 to-primary/20 rounded-full animate-shimmer"
-                    style={{ 
-                      animationDelay: `${i * 200}ms`,
-                      backgroundSize: '200px 100%',
-                      backgroundRepeat: 'no-repeat'
-                    }}
-                  />
-                ))}
-              </div>
             </div>
           </Card>
         </div>
@@ -255,89 +253,72 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen gradient-mesh">
-      <div className="container-constrained section-spacing space-y-12">
-        {/* Sophisticated Header */}
-        <div className="relative animate-fade-in">
-          <div className="absolute inset-0 gradient-sophisticated opacity-5 rounded-3xl blur-3xl" />
-          <div className="relative card-glass p-8 rounded-3xl border-2">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <div className="flex items-center gap-6">
-                  <div className="relative">
-                    <div className="absolute inset-0 gradient-primary rounded-2xl blur-lg opacity-50 animate-glow" />
-                    <div className="relative p-4 gradient-primary text-white rounded-2xl shadow-2xl">
-                      <Building2 className="h-8 w-8" />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <h1 className="text-elegant-heading">
-                      Membership Analytics
-                    </h1>
-                    <p className="text-refined text-xl">
-                      Advanced membership management & insights platform
-                    </p>
-                  </div>
-                </div>
+    <div className="min-h-screen bg-white">
+      <div className="max-w-[1400px] mx-auto p-6 space-y-8">
+        {/* Header */}
+        <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
+              <div className="p-4 bg-blue-600 text-white rounded-lg">
+                <Building2 className="h-8 w-8" />
               </div>
-              
-              <div className="flex items-center gap-3">
-                <ThemeToggle />
-                <Link to="/churn-analytics">
-                  <Button 
-                    variant="outline" 
-                    className="card-elevated border-destructive/20 hover:bg-destructive/5 text-destructive shadow-md hover:shadow-lg"
-                  >
-                    <TrendingDown className="h-4 w-4 mr-2" />
-                    Churn Analytics
-                  </Button>
-                </Link>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">
+                  Membership Analytics
+                </h1>
+                <p className="text-gray-600 text-lg">
+                  Advanced membership management & insights platform
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <ThemeToggle />
+              <Link to="/churn-analytics">
                 <Button 
-                  onClick={handleRefresh} 
                   variant="outline" 
-                  className="card-elevated hover:bg-accent/50 shadow-md hover:shadow-lg"
+                  className="border-red-200 text-red-700 hover:bg-red-50"
                 >
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Refresh
+                  <TrendingDown className="h-4 w-4 mr-2" />
+                  Churn Analytics
                 </Button>
-                <Button 
-                  onClick={() => setIsFilterOpen(true)} 
-                  className="gradient-primary shadow-lg hover:shadow-xl animate-glow"
-                >
-                  <Filter className="h-4 w-4 mr-2" />
-                  Advanced Filters
-                </Button>
-              </div>
+              </Link>
+              <Button 
+                onClick={handleRefresh} 
+                variant="outline" 
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh
+              </Button>
+              <Button 
+                onClick={() => setIsFilterOpen(true)} 
+                className="bg-blue-600 text-white hover:bg-blue-700"
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Advanced Filters
+              </Button>
             </div>
           </div>
         </div>
 
-        {/* Collapsible Filters */}
-        <div className="animate-slide-up">
-          <CollapsibleFilters
-            quickFilter={quickFilter}
-            onQuickFilterChange={setQuickFilter}
-            membershipData={localMembershipData}
-            availableLocations={availableLocations}
-          />
-        </div>
+        {/* Filters */}
+        <CollapsibleFilters
+          quickFilter={quickFilter}
+          onQuickFilterChange={setQuickFilter}
+          membershipData={localMembershipData}
+          availableLocations={availableLocations}
+        />
 
-        {/* Sophisticated Metrics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 animate-slide-up">
-          <div className="absolute inset-0 gradient-mesh opacity-20 rounded-3xl blur-3xl pointer-events-none" />
+        {/* Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <MetricCard
             title="Total Members"
             value={localMembershipData.length}
             icon={Users}
             change="+12% from last month"
             trend="up"
-            tooltip="Total number of registered members across all locations and membership types"
-            drillDownData={[
-              { label: 'This Month', value: 25 },
-              { label: 'Last Month', value: 18 },
-              { label: 'Active', value: activeMembers.length },
-              { label: 'Inactive', value: expiredMembers.length }
-            ]}
+            tooltip="Total number of registered members"
           />
           <MetricCard
             title="Active Members"
@@ -345,13 +326,7 @@ const Index = () => {
             icon={UserCheck}
             change="+5% from last month"
             trend="up"
-            tooltip="Members with active subscriptions and valid access to facilities"
-            drillDownData={[
-              { label: 'New', value: 12 },
-              { label: 'Renewed', value: 8 },
-              { label: 'With Sessions', value: membersWithSessions.length },
-              { label: 'Expiring Soon', value: expiringMembers.length }
-            ]}
+            tooltip="Members with active subscriptions"
           />
           <MetricCard
             title="Expired Members"
@@ -359,13 +334,7 @@ const Index = () => {
             icon={UserX}
             change="-8% from last month"
             trend="down"
-            tooltip="Members whose subscriptions have expired and need renewal"
-            drillDownData={[
-              { label: 'This Week', value: 3 },
-              { label: 'This Month', value: 8 },
-              { label: 'Recoverable', value: 15 },
-              { label: 'Lost', value: 5 }
-            ]}
+            tooltip="Members with expired subscriptions"
           />
           <MetricCard
             title="Total Sessions"
@@ -373,97 +342,162 @@ const Index = () => {
             icon={Dumbbell}
             change="+15% from last month"
             trend="up"
-            tooltip="Total remaining sessions across all active memberships"
-            drillDownData={[
-              { label: 'Available', value: localMembershipData.reduce((sum, member) => sum + member.sessionsLeft, 0) },
-              { label: 'Used This Month', value: 156 },
-              { label: 'Avg per Member', value: Math.round(localMembershipData.reduce((sum, member) => sum + member.sessionsLeft, 0) / localMembershipData.length) },
-              { label: 'Peak Usage', value: 45 }
-            ]}
+            tooltip="Total remaining sessions"
           />
         </div>
 
-        {/* Enhanced Chart */}
-        <div className="animate-slide-up">
-          <MembershipChart data={filteredData} />
-        </div>
+        {/* Chart */}
+        <MembershipChart data={filteredData} />
 
-        {/* Elegant Interactive Data Tables */}
-        <div className="animate-slide-up">
-          <Tabs defaultValue="overview" className="space-y-8">
-            <div className="relative">
-              <div className="absolute inset-0 gradient-mesh opacity-10 rounded-2xl blur-2xl" />
-              <Card className="card-glass p-3 relative">
-                <TabsList className="grid w-full grid-cols-4 bg-background/50 gap-2 p-2 backdrop-blur-sm">
-                  <TabsTrigger 
-                    value="overview" 
-                    className="data-[state=active]:gradient-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg font-semibold transition-all duration-300 data-[state=active]:scale-105 hover:bg-accent/50"
-                  >
+        {/* Data View */}
+        <div className="space-y-6">
+          <Tabs defaultValue="overview" className="space-y-6">
+            <div className="bg-white border border-gray-200 rounded-lg p-3">
+              <div className="flex justify-between items-center">
+                <TabsList className="grid w-full grid-cols-4 max-w-md bg-gray-100">
+                  <TabsTrigger value="overview" className="data-[state=active]:bg-white data-[state=active]:text-gray-900">
                     <Activity className="h-4 w-4 mr-2" />
                     Overview
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="active" 
-                    className="data-[state=active]:bg-success data-[state=active]:text-success-foreground data-[state=active]:shadow-lg font-semibold transition-all duration-300 data-[state=active]:scale-105 hover:bg-accent/50"
-                  >
+                  <TabsTrigger value="active" className="data-[state=active]:bg-white data-[state=active]:text-gray-900">
                     <UserCheck className="h-4 w-4 mr-2" />
-                    Active ({activeMembers.length})
+                    Active
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="expired" 
-                    className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground data-[state=active]:shadow-lg font-semibold transition-all duration-300 data-[state=active]:scale-105 hover:bg-accent/50"
-                  >
+                  <TabsTrigger value="expired" className="data-[state=active]:bg-white data-[state=active]:text-gray-900">
                     <UserX className="h-4 w-4 mr-2" />
-                    Expired ({expiredMembers.length})
+                    Expired
                   </TabsTrigger>
-                  <TabsTrigger 
-                    value="sessions" 
-                    className="data-[state=active]:bg-warning data-[state=active]:text-warning-foreground data-[state=active]:shadow-lg font-semibold transition-all duration-300 data-[state=active]:scale-105 hover:bg-accent/50"
-                  >
+                  <TabsTrigger value="sessions" className="data-[state=active]:bg-white data-[state=active]:text-gray-900">
                     <Dumbbell className="h-4 w-4 mr-2" />
                     Sessions
                   </TabsTrigger>
                 </TabsList>
-              </Card>
+                
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={viewMode === 'table' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setViewMode('table')}
+                    className="bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  >
+                    <List className="h-4 w-4 mr-2" />
+                    Table
+                  </Button>
+                  <Button
+                    variant={viewMode === 'cards' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setViewMode('cards')}
+                    className="bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  >
+                    <Grid className="h-4 w-4 mr-2" />
+                    Cards
+                  </Button>
+                </div>
+              </div>
             </div>
 
-            <TabsContent value="overview" className="space-y-6">
-              <DataTable 
-                data={filteredData} 
-                title="All Members Overview"
-                onAnnotationUpdate={handleAnnotationUpdate}
-              />
-            </TabsContent>
-
-            <TabsContent value="active" className="space-y-6">
-              <DataTable 
-                data={filteredData.filter(member => member.status === 'Active')} 
-                title="Active Members"
-                onAnnotationUpdate={handleAnnotationUpdate}
-              />
-            </TabsContent>
-
-            <TabsContent value="expired" className="space-y-6">
-              <DataTable 
-                data={filteredData.filter(member => member.status === 'Expired')} 
-                title="Expired Members"
-                onAnnotationUpdate={handleAnnotationUpdate}
-              />
-            </TabsContent>
-
-            <TabsContent value="sessions" className="space-y-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <TabsContent value="overview">
+              {viewMode === 'table' ? (
                 <DataTable 
-                  data={filteredData.filter(member => member.sessionsLeft > 0)} 
-                  title="Members with Remaining Sessions"
+                  data={filteredData} 
+                  title="All Members Overview"
                   onAnnotationUpdate={handleAnnotationUpdate}
                 />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredData.map((member) => (
+                    <MemberCard
+                      key={member.uniqueId}
+                      member={member}
+                      onOpenAnnotations={handleOpenAnnotations}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="active">
+              {viewMode === 'table' ? (
                 <DataTable 
-                  data={filteredData.filter(member => member.sessionsLeft === 0)} 
-                  title="Members with No Sessions"
+                  data={filteredData.filter(member => member.status === 'Active')} 
+                  title="Active Members"
                   onAnnotationUpdate={handleAnnotationUpdate}
                 />
-              </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredData.filter(member => member.status === 'Active').map((member) => (
+                    <MemberCard
+                      key={member.uniqueId}
+                      member={member}
+                      onOpenAnnotations={handleOpenAnnotations}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="expired">
+              {viewMode === 'table' ? (
+                <DataTable 
+                  data={filteredData.filter(member => member.status === 'Expired')} 
+                  title="Expired Members"
+                  onAnnotationUpdate={handleAnnotationUpdate}
+                />
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredData.filter(member => member.status === 'Expired').map((member) => (
+                    <MemberCard
+                      key={member.uniqueId}
+                      member={member}
+                      onOpenAnnotations={handleOpenAnnotations}
+                    />
+                  ))}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="sessions">
+              {viewMode === 'table' ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <DataTable 
+                    data={filteredData.filter(member => member.sessionsLeft > 0)} 
+                    title="Members with Sessions"
+                    onAnnotationUpdate={handleAnnotationUpdate}
+                  />
+                  <DataTable 
+                    data={filteredData.filter(member => member.sessionsLeft === 0)} 
+                    title="Members without Sessions"
+                    onAnnotationUpdate={handleAnnotationUpdate}
+                  />
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Members with Sessions</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredData.filter(member => member.sessionsLeft > 0).map((member) => (
+                        <MemberCard
+                          key={member.uniqueId}
+                          member={member}
+                          onOpenAnnotations={handleOpenAnnotations}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Members without Sessions</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredData.filter(member => member.sessionsLeft === 0).map((member) => (
+                        <MemberCard
+                          key={member.uniqueId}
+                          member={member}
+                          onOpenAnnotations={handleOpenAnnotations}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </TabsContent>
           </Tabs>
         </div>
@@ -474,11 +508,17 @@ const Index = () => {
           filters={filters}
           onFiltersChange={(newFilters) => {
             setFilters(newFilters);
-            // Reset quick filter when advanced filters are applied
             setQuickFilter('all');
           }}
           availableLocations={availableLocations}
           availableMembershipTypes={availableMembershipTypes}
+        />
+
+        <MemberAnnotations
+          member={selectedMember}
+          isOpen={isAnnotationsOpen}
+          onClose={handleCloseAnnotations}
+          onSave={handleAnnotationUpdate}
         />
       </div>
     </div>
